@@ -32,7 +32,7 @@
 *.dSYM/
 *.su
 
-./nbproject
-./dist
-./build
-./Makefile
+nbproject/
+dist/
+build/
+Makefile
