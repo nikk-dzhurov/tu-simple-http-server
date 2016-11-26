@@ -31,3 +31,8 @@
 # Debug files
 *.dSYM/
 *.su
+
+./nbproject
+./dist
+./build
+./Makefile
