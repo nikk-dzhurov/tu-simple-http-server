@@ -225,13 +225,13 @@ void printHeaders(RequestData *data) {
 
 RequestData* parseRequest(char *request) {
     RequestData* data = (RequestData*) malloc(sizeof (RequestData));
-    char *pch = NULL;
+    char *pch = NULL, *body = NULL;
     char *lines[100];
     char *err;
     int i = 0;
 
     // parse params
-    char body[1024];
+    body = (char *)malloc(1024);
     for (int j = 0; j < strlen(request)-3; j++) {
         if (request[j] == '\r' && request[j+1] == '\n' && request[j + 2] == '\r' && request[j + 3] == '\n') {
             int m = j + 3;
