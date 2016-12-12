@@ -8,6 +8,19 @@
 	<link rel="stylesheet" href="css/style.css" type="text/css">
 	<link rel="stylesheet" type="text/css" href="css/mobile.css">
 	<script src="js/mobile.js" type="text/javascript"></script>
+	<script>
+		$(document).ready(function () {
+		   $(".product").click(function(){
+    		     $.ajax({
+    			url: "/post.html",
+    			method: "POST",
+    			success: function(result){
+        		    $(this).html(result);
+    			}
+    		     });
+		   });
+		})
+	</script>
 </head>
 <body>
 	<div id="page">
@@ -52,33 +65,33 @@
 						<h1>All Time Classic</h1>
 						<p>This website template has been designed by freewebsitetemplates.com for you, for free.</p>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/kiwi.jpg" alt="">
 						<h2>Kiwi</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/mango.jpg" alt="">
 						<h2>Mango</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/cantaloupe.jpg" alt="">
 						<h2>Cantaloupe</h2>
 					</li>
 				</ul>
 				<ul>
-					<li>
+					<li >
 						<h1>Berry Special</h1>
 						<p>This website template has been designed by freewebsitetemplates.com for you, for free.</p>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/blackberry.jpg" alt="">
 						<h2>blackberry</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/strawberry.jpg" alt="">
 						<h2>Strawberry</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/blueberry.jpg" alt="">
 						<h2>BLUEBERRY</h2>
 					</li>
@@ -88,15 +101,15 @@
 						<h1>Fruit Blast</h1>
 						<p>This website template has been designed by freewebsitetemplates.com for you, for free.</p>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/grapes.jpg" alt="">
 						<h2>Grapes</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/green-apple.jpg" alt="">
 						<h2>Green Apple</h2>
 					</li>
-					<li>
+					<li class="product">
 						<img src="images/pineapple.jpg" alt="">
 						<h2>Pineapple</h2>
 					</li>

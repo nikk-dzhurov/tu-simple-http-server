@@ -17,6 +17,7 @@ typedef struct {
     char *method;
     char *path;
     char *httpVersion;
+    char *queryParams;
     char *body;
     Header headers[100];
     char error[150];
@@ -74,7 +75,6 @@ int main() {
         printf("ERROR on binding\n");
         return 1;
     }
-
     // listen for connections to socket
     listen(sockfd, 5);
 
@@ -84,24 +84,20 @@ int main() {
             printf("ERROR on accept\n");
             return 1;
         }
-
         bzero(request, 1024);
-
         // read request
         if (read(connfd, request, 1024) < 0) {
             printf("ERROR reading from socket\n");
             return 1;
         } else {
-            // HANDLE REQUEST
-
             // fill request struct
             data = parseRequest(request);
-
 
             // check if request is valid
             if (data->method[0] == 0 && (strcmp(data->httpVersion, "HTTP/1.0") != 0 || strcmp(data->httpVersion, "HTTP/1.1") != 0) && data->path[0] != '/') {
                 // return 400 status code or something else
             } else {
+                // HANDLE REQUEST
                 handleRequest(data, connfd);
             }
 
@@ -115,46 +111,50 @@ void handleRequest(RequestData *request, int connfd) {
     Content *content;
     char *resp, *type;
     int statusCode = 200;
-
+    char strSuccess[] = "{ 'success' : true }", strError[] = "{ 'success' : false }";
     if (strcmp(request->method, "GET") == 0) {
+        if(strcmp(request->path, "/") == 0) {
+            request->path = (char*)malloc(strlen("/index.html"));
+            strcpy(request->path, "/index.html");
+        }
         content = readFile(request->path);
         type = getContentType(request->path);
-        
-        
-        if (content->length == 0) {
-            // return 404
-            printf("400 page should appear\n");
-            statusCode = 400;
-            type = NULL;
-        } else if (!type) {
+        if (content->length <= 0 || type == NULL) {
             printf("404 page should appear\n");
             statusCode = 404;
+            type = (char*)malloc(strlen("text/html"));
             strcpy(type, "text/html");
             content = readFile("/404.html");
         }
-        
         // build response status and headers
         resp = buildResponse(request, content->length, statusCode, type);
 
+    } else if (strcmp(request->method, "POST") == 0) {
 
-        // write response to client
-        if (write(connfd, resp, strlen(resp)) == -1) {
-            printf("ERROR on write\n");
-            return;
+        FILE *fp;
+        content = (Content*) malloc(sizeof (Content));
+        // open file for write params
+        type = (char*) malloc(strlen("application/json"));
+        fp = fopen("./params.bin", "rw+");
+        if (fp) {
+            fwrite(request->queryParams, strlen(request->queryParams), 1, fp);
+            fclose(fp);
+            content->length = strlen(strSuccess);
+            content->content = (char*) malloc(content->length);
+
+            strcpy(content->content, strSuccess);
+            statusCode = 201;
+            strcpy(type, "application/json");
+            resp = buildResponse(request, content->length, statusCode, type);
+        } else {
+            content->length = strlen(strError);
+            content->content = (char*) malloc(content->length);
+            strcpy(content->content, strError);
+            printf("cannot open file for writing\n");
+            statusCode = 500;
+            strcpy(type, "application/json");
+            resp = buildResponse(request, content->length, statusCode, type);
         }
-        
-        // write body
-        if(content->length > 0) {
-            if (write(connfd, content->content, content->length) == -1) {
-                printf("ERROR on write\n");
-                return;
-            }
-        }
-        free(content);
-        free(request);
-        free(resp);
-        free(type);
-    } else if (strcmp(request->method, "POST")) {
 
     } else if (strcmp(request->method, "PUT")) {
 
@@ -163,11 +163,30 @@ void handleRequest(RequestData *request, int connfd) {
     } else {
         // return 404 || 400
     }
+
+
+    // write response to client
+    if (write(connfd, resp, strlen(resp)) == -1) {
+        printf("ERROR on write\n");
+        return;
+    }
+
+    // write body
+    if (content->length > 0) {
+        if (write(connfd, content->content, content->length) == -1) {
+            printf("ERROR on write\n");
+            return;
+        }
+    }
+    free(content);
+    free(request);
+    free(resp);
+    free(type);
 }
 
 char* buildResponse(RequestData *data, long contLength, int statusCode, char *type) {
     char *resp;
-    int i = 0;
+    long int i = 0;
     char status[50];
     char contentType[50];
     char contentLength[50];
@@ -178,24 +197,20 @@ char* buildResponse(RequestData *data, long contLength, int statusCode, char *ty
     // add status
     sprintf(status, "HTTP/1.1 %d\r\n", statusCode);
     strcpy(&resp[i], status);
-    i += strlen(status) - 1;
-    
+    i += strlen(status);
     // add headers
-    if(contLength != 0 && type != NULL) {
+    if (contLength != 0 && type != NULL) {
         sprintf(contentLength, "Content-Length: %d\r\n", contLength);
         sprintf(contentType, "Content-Type: %s\r\n", type);
-        
+
         strcpy(&resp[i], contentType);
-        i += strlen(contentType) - 1;
+        i += strlen(contentType);
         strcpy(&resp[i], contentLength);
-        i += strlen(contentLength) - 1;
+        i += strlen(contentLength);
     }
 
     // split body from headers
     strcpy(&resp[i], CLRF);
-    i += sizeof (CLRF) - 1;
-    strcpy(&resp[i], CLRF);
-
 
     return resp;
 }
@@ -215,6 +230,18 @@ RequestData* parseRequest(char *request) {
     char *err;
     int i = 0;
 
+    // parse params
+    char body[1024];
+    for (int j = 0; j < strlen(request)-3; j++) {
+        if (request[j] == '\r' && request[j+1] == '\n' && request[j + 2] == '\r' && request[j + 3] == '\n') {
+            int m = j + 3;
+            strcpy(body, &request[m]);
+            request[j + 1] = '\0';
+            break;
+        }
+    }
+
+    data->queryParams = body;
     // make every line to point NULL
     while (i < 100) {
         lines[i++] = NULL;
@@ -223,13 +250,14 @@ RequestData* parseRequest(char *request) {
     // split request to lines
     i = 0;
     pch = strtok(request, "\r\n");
+
     while (pch != NULL) {
         lines[i++] = pch;
         pch = strtok(NULL, "\r\n");
     }
-
     // get method, path and version
     pch = strtok(lines[0], " ");
+
     if (pch) {
         data->method = pch;
         pch = strtok(NULL, " ");
@@ -246,7 +274,6 @@ RequestData* parseRequest(char *request) {
             strcpy(data->error, "Cannot get path");
             return data;
         }
-
     } else {
         strcpy(data->error, "Cannot get method");
         return data;
@@ -263,7 +290,7 @@ RequestData* parseRequest(char *request) {
             if (pch) {
                 data->headers[i - 1].data = pch;
             } else {
-                sprintf(err, "Invalid Header: %s", data->headers[i - 1].name);
+                sprintf(err, "Invalid Header: %s \n", data->headers[i - 1].name);
                 strcpy(data->error, err);
                 break;
             }
