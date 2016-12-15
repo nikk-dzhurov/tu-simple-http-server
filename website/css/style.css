@@ -332,6 +332,9 @@ img {
 	text-transform: uppercase;
 }
 /*----------------------------------------body-styles---------------------------------------*/
+.product {
+  	cursor: pointer;	
+}
 #body {
 	margin: 0;
 	overflow: hidden;
