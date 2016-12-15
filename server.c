@@ -228,11 +228,11 @@ RequestData* parseRequest(char *request) {
     char *pch = NULL, *body = NULL;
     char *lines[100];
     char *err;
-    int i = 0;
-
+    int i = 0, j;
+   
     // parse params
     body = (char *)malloc(1024);
-    for (int j = 0; j < strlen(request)-3; j++) {
+    for (j = 0; j < strlen(request)-3; j++) {
         if (request[j] == '\r' && request[j+1] == '\n' && request[j + 2] == '\r' && request[j + 3] == '\n') {
             int m = j + 3;
             strcpy(body, &request[m]);
